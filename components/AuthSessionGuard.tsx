@@ -1,0 +1,146 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import { API_BASE_URL } from '@/services/api';
+import {
+  clearToken,
+  getLastActive,
+  getToken,
+  getTokenExpiryMs,
+  saveAccessToken,
+  setAuthInitializing,
+  setLastActive,
+} from '@/services/auth.service';
+
+const IDLE_LIMIT_MS = 60 * 60 * 1000;
+const CHECK_INTERVAL_MS = 60 * 1000;
+
+const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+
+export default function AuthSessionGuard() {
+  const router = useRouter();
+  const refreshing = useRef(false);
+
+  useEffect(() => {
+    const THROTTLE_MS = 30000; // 30 seconds
+    let lastUpdate = 0;
+
+    const updateActivity = () => {
+      const now = Date.now();
+      if (now - lastUpdate < THROTTLE_MS) return;
+      
+      if (!getToken()) return;
+      setLastActive(now);
+      lastUpdate = now;
+    };
+
+    updateActivity();
+    events.forEach((event) => window.addEventListener(event, updateActivity, { passive: true }));
+    return () => {
+      events.forEach((event) => window.removeEventListener(event, updateActivity));
+    };
+  }, []);
+
+  useEffect(() => {
+    const logout = (dest = '/login') => {
+      clearToken();
+      window.location.href = dest;
+    };
+
+    const tick = async () => {
+      const pathname = window.location.pathname;
+      const isProtectedRoute = pathname.startsWith('/admin') || 
+                               pathname.startsWith('/profile') || 
+                               pathname.startsWith('/orders') || 
+                               pathname.startsWith('/cart');
+      
+      const accessToken = getToken();
+      
+      // If no token but yec_has_session flag is true -> try to restore session first!
+      if (!accessToken) {
+        const hasSession = typeof window !== 'undefined' && localStorage.getItem('yec_has_session') === 'true';
+        if (hasSession) {
+          if (refreshing.current) return;
+          refreshing.current = true;
+          try {
+            const { data } = await axios.post(
+              `${API_BASE_URL}/auth/refresh`,
+              {},
+              { timeout: 15000, withCredentials: true, headers: { 'x-skip-refresh': '1' } },
+            );
+            const nextAccess = data?.accessToken;
+            if (nextAccess) {
+              saveAccessToken(nextAccess);
+              setLastActive(Date.now());
+              return;
+            } else {
+              setAuthInitializing(false);
+              logout();
+            }
+          } catch {
+            setAuthInitializing(false);
+            logout();
+          } finally {
+            refreshing.current = false;
+          }
+        } else {
+          setAuthInitializing(false);
+          if (isProtectedRoute) {
+            logout();
+          }
+        }
+        return;
+      }
+
+      const now = Date.now();
+      
+      // 1. Check Idle time
+      const lastActive = getLastActive();
+      if (now - lastActive > IDLE_LIMIT_MS) {
+        logout();
+        return;
+      }
+
+      // 2. Check Access Token persistence/expiry
+      const accessExp = getTokenExpiryMs(accessToken);
+      if (accessExp && now >= accessExp) {
+        const hasSession = typeof window !== 'undefined' && localStorage.getItem('yec_has_session') === 'true';
+        if (!hasSession) {
+          logout();
+          return;
+        }
+
+        if (refreshing.current) return;
+        refreshing.current = true;
+        try {
+          const { data } = await axios.post(
+            `${API_BASE_URL}/auth/refresh`,
+            {},
+            { timeout: 15000, withCredentials: true, headers: { 'x-skip-refresh': '1' } },
+          );
+          const nextAccess = data?.accessToken;
+          if (nextAccess) {
+            saveAccessToken(nextAccess);
+            setLastActive(Date.now());
+          } else {
+            logout();
+          }
+        } catch {
+          logout();
+        } finally {
+          refreshing.current = false;
+        }
+      }
+    };
+
+    const interval = window.setInterval(tick, 10000);
+    void tick();
+
+    return () => window.clearInterval(interval);
+  }, [router]);
+
+  return null;
+}
+
