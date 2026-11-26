@@ -273,6 +273,25 @@
     padding-right: 2.75rem !important;
   }
 
+  /* Flex-sibling icon wrapper — icon lives beside input, not inside it */
+  .icon-input-wrap input {
+    flex: 1;
+    height: 100%;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 1rem 0 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+  }
+  .icon-input-wrap input:focus {
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
   .input-field {
     width: 100%;
     border-radius: 1rem;

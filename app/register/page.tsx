@@ -19,6 +19,60 @@ type EmailStep = 'register' | 'verify' | 'done';
 type SmsStep = 'request' | 'verify';
 type AuthMode = 'sms' | 'email';
 
+/* ─── Shared styles ───────────────────────────────────────────────────────── */
+const wrapCls =
+  'icon-input-wrap flex h-12 items-center overflow-hidden rounded-2xl border border-[#EAE2D3] bg-white transition-all duration-200 focus-within:border-[#D4A853] focus-within:ring-2 focus-within:ring-[#D4A853]/20';
+
+const iconCls =
+  'pointer-events-none shrink-0 pl-4 pr-2.5 text-[#8C7A5B]';
+
+/* ─── Icon input helpers ──────────────────────────────────────────────────── */
+function IconInput({
+  icon,
+  inputProps,
+}: {
+  icon: React.ReactNode;
+  inputProps: React.InputHTMLAttributes<HTMLInputElement>;
+}) {
+  return (
+    <div className={wrapCls}>
+      <span className={iconCls} aria-hidden="true">{icon}</span>
+      <input {...inputProps} className="outline-none placeholder-[#B4A88F] text-[#1A2235]" />
+    </div>
+  );
+}
+
+function PasswordInput({
+  icon,
+  show,
+  onToggle,
+  inputProps,
+}: {
+  icon: React.ReactNode;
+  show: boolean;
+  onToggle: () => void;
+  inputProps: React.InputHTMLAttributes<HTMLInputElement>;
+}) {
+  return (
+    <div className={wrapCls}>
+      <span className={iconCls} aria-hidden="true">{icon}</span>
+      <input
+        {...inputProps}
+        type={show ? 'text' : 'password'}
+        className="outline-none placeholder-[#B4A88F] text-[#1A2235]"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="shrink-0 pr-4 text-[#8C7A5B] transition-colors hover:text-[#4A5366]"
+        aria-label={show ? 'Parolni yashirish' : "Parolni ko'rsatish"}
+      >
+        {show ? <EyeOff size={18} strokeWidth={1.9} /> : <Eye size={18} strokeWidth={1.9} />}
+      </button>
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [authMode, setAuthMode] = useState<AuthMode>('sms');
@@ -56,57 +110,45 @@ export default function RegisterPage() {
     errorTimeoutRef.current = setTimeout(() => setError(''), duration);
   };
 
-  const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(formatPhoneNumber(event.target.value));
-  };
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setPhone(formatPhoneNumber(e.target.value));
 
   const handleNameChange = (value: string, setter: (v: string) => void) => {
-    let sanitized = value.replace(/[^a-zA-Zа-яА-ЯёЁҒғҚқҲҳЎўҮүҲ]/g, '');
-    if (sanitized.length > 0) {
-      sanitized = sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
-    }
-    setter(sanitized);
+    let s = value.replace(/[^a-zA-Zа-яА-ЯёЁҒғҚқҲҳЎўҮүҲ]/g, '');
+    if (s.length > 0) s = s.charAt(0).toUpperCase() + s.slice(1);
+    setter(s);
   };
 
   /* ─── Email Auth ─────────────────────────────────────────────────────── */
 
-  const requestEmailOtp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const requestEmailOtp = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     try {
       setEmailLoading(true);
       showError('');
       setEmailMessage('');
-      const response = await requestRegisterOtp({
-        firstName,
-        lastName,
-        email,
+      const res = await requestRegisterOtp({
+        firstName, lastName, email,
         phone: normalizePhoneNumber(phone),
         password,
       });
-      setEmailDevOtpCode(response.devOtpCode ?? '');
-      setEmailMessage(response.message);
+      setEmailDevOtpCode(res.devOtpCode ?? '');
+      setEmailMessage(res.message);
       setEmailStep('verify');
-    } catch (err) {
-      showError(getErrorMessage(err));
-    } finally {
-      setEmailLoading(false);
-    }
+    } catch (err) { showError(getErrorMessage(err)); }
+    finally { setEmailLoading(false); }
   };
 
-  const verifyEmailRegistration = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const verifyEmailRegistration = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     try {
       setEmailLoading(true);
       showError('');
-      setEmailMessage('');
-      const response = await verifyRegisterOtp({ email, otp: emailOtp });
-      setEmailMessage(response.message);
+      const res = await verifyRegisterOtp({ email, otp: emailOtp });
+      setEmailMessage(res.message);
       setEmailStep('done');
-    } catch (err) {
-      showError(getErrorMessage(err));
-    } finally {
-      setEmailLoading(false);
-    }
+    } catch (err) { showError(getErrorMessage(err)); }
+    finally { setEmailLoading(false); }
   };
 
   const resendEmailOtp = async () => {
@@ -114,27 +156,20 @@ export default function RegisterPage() {
     try {
       setEmailResending(true);
       showError('');
-      setEmailMessage('');
-      const response = await requestRegisterOtp({
-        firstName,
-        lastName,
-        email,
-        phone: normalizePhoneNumber(phone),
-        password,
+      const res = await requestRegisterOtp({
+        firstName, lastName, email,
+        phone: normalizePhoneNumber(phone), password,
       });
-      setEmailDevOtpCode(response.devOtpCode ?? '');
-      setEmailMessage(response.message || 'Tasdiqlash kodi qayta yuborildi.');
-    } catch (err) {
-      showError(getErrorMessage(err));
-    } finally {
-      setEmailResending(false);
-    }
+      setEmailDevOtpCode(res.devOtpCode ?? '');
+      setEmailMessage(res.message || 'Tasdiqlash kodi qayta yuborildi.');
+    } catch (err) { showError(getErrorMessage(err)); }
+    finally { setEmailResending(false); }
   };
 
   /* ─── SMS Auth ───────────────────────────────────────────────────────── */
 
-  const requestSmsOtp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const requestSmsOtp = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const normalized = normalizePhoneNumber(phone);
     if (normalized.replace(/\D/g, '').length < 12) {
       showError("Telefon raqamni to'liq kiriting (masalan: +998 90 123 45 67).");
@@ -143,93 +178,79 @@ export default function RegisterPage() {
     try {
       setSmsLoading(true);
       showError('');
-      setSmsMessage('');
-      const response = await requestPhoneOtp({
+      const res = await requestPhoneOtp({
         phone: normalized,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
       });
-      setSmsDevOtpCode(response.devOtpCode ?? '');
-      setSmsMessage(response.message || "SMS kod yuborildi.");
+      setSmsDevOtpCode(res.devOtpCode ?? '');
+      setSmsMessage(res.message || 'SMS kod yuborildi.');
       setSmsStep('verify');
-    } catch (err) {
-      showError(getErrorMessage(err));
-    } finally {
-      setSmsLoading(false);
-    }
+    } catch (err) { showError(getErrorMessage(err)); }
+    finally { setSmsLoading(false); }
   };
 
-  const verifySmsOtp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const verifySmsOtp = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     try {
       setSmsLoading(true);
       showError('');
-      const response = await verifyPhoneOtp({
+      const res = await verifyPhoneOtp({
         phone: normalizePhoneNumber(phone),
         otp: smsOtp,
         firstName: firstName || undefined,
         lastName: lastName || undefined,
         password: smsPassword || undefined,
       });
-      if (response.access_token) {
-        saveTokens(response);
-        router.push('/profile');
-      }
-    } catch (err) {
-      showError(getErrorMessage(err));
-    } finally {
-      setSmsLoading(false);
-    }
+      if (res.access_token) { saveTokens(res); router.push('/profile'); }
+    } catch (err) { showError(getErrorMessage(err)); }
+    finally { setSmsLoading(false); }
   };
 
   const resendSmsOtp = async () => {
-    const normalized = normalizePhoneNumber(phone);
     try {
       setSmsResending(true);
       showError('');
-      setSmsMessage('');
-      const response = await requestPhoneOtp({
-        phone: normalized,
+      const res = await requestPhoneOtp({
+        phone: normalizePhoneNumber(phone),
         firstName: firstName || undefined,
         lastName: lastName || undefined,
       });
-      setSmsDevOtpCode(response.devOtpCode ?? '');
-      setSmsMessage(response.message || "SMS kod qayta yuborildi.");
-    } catch (err) {
-      showError(getErrorMessage(err));
-    } finally {
-      setSmsResending(false);
-    }
+      setSmsDevOtpCode(res.devOtpCode ?? '');
+      setSmsMessage(res.message || 'SMS kod qayta yuborildi.');
+    } catch (err) { showError(getErrorMessage(err)); }
+    finally { setSmsResending(false); }
   };
 
   const handleGoogleLogin = () => {
-    if (typeof window !== 'undefined') {
-      window.location.href = googleLoginUrl;
-    }
+    if (typeof window !== 'undefined') window.location.href = googleLoginUrl;
   };
 
-  const switchMode = (mode: AuthMode) => {
-    setAuthMode(mode);
-    setError('');
-  };
+  const switchMode = (mode: AuthMode) => { setAuthMode(mode); setError(''); };
 
-  /* ─── Shared input style ─────────────────────────────────────────────── */
+  /* ─── Helpers ────────────────────────────────────────────────────────── */
 
-  const inputCls =
-    'h-12 w-full rounded-2xl border border-[#EAE2D3] bg-white text-sm text-[#1A2235] placeholder-[#B4A88F] outline-none transition-all duration-200 focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/20';
-  const iCls = inputCls + ' pl-icon';
-  const iPrCls = inputCls + ' pl-icon pr-icon';
+  const isOtpStep =
+    (authMode === 'sms' && smsStep === 'verify') ||
+    (authMode === 'email' && (emailStep === 'verify' || emailStep === 'done'));
+
+  const primaryBtn =
+    'flex h-12 w-full items-center justify-center rounded-2xl bg-[#0B1426] text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#162035] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60';
+
+  const secondaryBtn =
+    'flex h-12 w-full items-center justify-center rounded-2xl border border-[#EAE2D3] bg-[#FAF8F3] text-sm font-semibold text-[#0B1426] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D4A853]/60 hover:bg-[#F5EFE3] active:translate-y-0 disabled:opacity-60';
+
+  const labelCls =
+    'mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]';
+
+  const otpInputCls =
+    'icon-input-wrap flex h-12 w-full items-center overflow-hidden rounded-2xl border border-[#EAE2D3] bg-white transition-all duration-200 focus-within:border-[#D4A853] focus-within:ring-2 focus-within:ring-[#D4A853]/20';
 
   /* ─── JSX ────────────────────────────────────────────────────────────── */
-
-  const isOtpStep = (authMode === 'sms' && smsStep === 'verify') ||
-    (authMode === 'email' && emailStep === 'verify') ||
-    (authMode === 'email' && emailStep === 'done');
 
   return (
     <section className="min-h-[calc(100vh-76px)] w-full bg-[#FAF8F3] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-[480px]">
-        {/* ── Card ── */}
         <div className="rounded-3xl border border-[#EAE2D3] bg-white p-6 shadow-[0_20px_60px_-15px_rgba(11,20,38,0.08)] sm:p-9">
 
           {/* Header */}
@@ -247,210 +268,124 @@ export default function RegisterPage() {
 
           {/* Error Alert */}
           {error && (
-            <div
-              role="alert"
-              className="mb-5 flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50/90 px-4 py-3 text-xs font-medium text-red-700"
-            >
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
+            <div role="alert" className="mb-5 flex items-start gap-2.5 rounded-2xl border border-red-200 bg-red-50/90 px-4 py-3 text-xs font-medium text-red-700">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <span>{error}</span>
             </div>
           )}
 
-          {/* ── Segmented Control ── */}
+          {/* Segmented Control */}
           <div className="mb-6 grid grid-cols-2 gap-1 rounded-2xl border border-[#EAE2D3] bg-[#FAF8F3] p-1">
-            <button
-              type="button"
-              onClick={() => switchMode('sms')}
-              className={`h-10 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                authMode === 'sms'
-                  ? 'bg-white text-[#0B1426] shadow-sm'
-                  : 'text-[#5C6475] hover:bg-white/60'
-              }`}
-            >
-              SMS orqali
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('email')}
-              className={`h-10 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                authMode === 'email'
-                  ? 'bg-white text-[#0B1426] shadow-sm'
-                  : 'text-[#5C6475] hover:bg-white/60'
-              }`}
-            >
-              Email orqali
-            </button>
+            {(['sms', 'email'] as AuthMode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => switchMode(m)}
+                className={`h-10 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  authMode === m
+                    ? 'bg-white text-[#0B1426] shadow-sm'
+                    : 'text-[#5C6475] hover:bg-white/60'
+                }`}
+              >
+                {m === 'sms' ? 'SMS orqali' : 'Email orqali'}
+              </button>
+            ))}
           </div>
 
-          {/* ══════════ SMS MODE ══════════ */}
+          {/* ══════════ SMS REQUEST ══════════ */}
           {authMode === 'sms' && smsStep === 'request' && (
             <form onSubmit={requestSmsOtp} className="space-y-4">
-              {/* First Name */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Ism
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <UserRound size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Ismingiz"
-                    value={firstName}
-                    onChange={(e) => handleNameChange(e.target.value, setFirstName)}
-                    className={iCls}
-                    autoComplete="given-name"
-                  />
-                </div>
+                <label className={labelCls}>Ism</label>
+                <IconInput
+                  icon={<UserRound size={18} strokeWidth={1.9} />}
+                  inputProps={{
+                    type: 'text', placeholder: 'Ismingiz', value: firstName,
+                    onChange: (e) => handleNameChange(e.target.value, setFirstName),
+                    autoComplete: 'given-name',
+                  }}
+                />
               </div>
-
-              {/* Last Name */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Familiya
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <UserRound size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Familiyangiz"
-                    value={lastName}
-                    onChange={(e) => handleNameChange(e.target.value, setLastName)}
-                    className={iCls}
-                    autoComplete="family-name"
-                  />
-                </div>
+                <label className={labelCls}>Familiya</label>
+                <IconInput
+                  icon={<UserRound size={18} strokeWidth={1.9} />}
+                  inputProps={{
+                    type: 'text', placeholder: 'Familiyangiz', value: lastName,
+                    onChange: (e) => handleNameChange(e.target.value, setLastName),
+                    autoComplete: 'family-name',
+                  }}
+                />
               </div>
-
-              {/* Phone */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Telefon raqam
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <Phone size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="+998 90 123 45 67"
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    className={iCls}
-                    autoComplete="tel"
-                    required
-                  />
-                </div>
+                <label className={labelCls}>Telefon raqam</label>
+                <IconInput
+                  icon={<Phone size={18} strokeWidth={1.9} />}
+                  inputProps={{
+                    type: 'tel', inputMode: 'numeric', placeholder: '+998 90 123 45 67',
+                    value: phone, onChange: handlePhoneChange,
+                    autoComplete: 'tel', required: true,
+                  }}
+                />
               </div>
-
-              <button
-                type="submit"
-                disabled={smsLoading}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0B1426] text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#162035] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {smsLoading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  'SMS kodini yuborish'
-                )}
+              <button type="submit" disabled={smsLoading} className={primaryBtn}>
+                {smsLoading
+                  ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  : 'SMS kodini yuborish'}
               </button>
             </form>
           )}
 
-          {/* SMS OTP Verify Step */}
+          {/* ══════════ SMS VERIFY ══════════ */}
           {authMode === 'sms' && smsStep === 'verify' && (
             <form onSubmit={verifySmsOtp} className="space-y-4">
-              {/* Success banner */}
               <div className="flex items-start gap-2.5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-800">
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
                 <span>{smsMessage || 'SMS kod yuborildi.'}</span>
               </div>
-
-              {/* Dev OTP */}
               {smsDevOtpCode && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
                   Test kodi: <strong>{smsDevOtpCode}</strong>
                 </div>
               )}
-
-              {/* OTP Input */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  SMS kod
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="6 xonali kod"
-                  value={smsOtp}
-                  onChange={(e) => setSmsOtp(e.target.value)}
-                  className={`${inputCls} px-4 text-center text-lg tracking-[0.4em]`}
-                  maxLength={6}
-                  required
-                />
-              </div>
-
-              {/* Password (set at verify step) */}
-              <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Parol yaratish
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <LockKeyhole size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
+                <label className={labelCls}>SMS kod</label>
+                <div className={otpInputCls}>
                   <input
-                    type={showSmsPassword ? 'text' : 'password'}
-                    placeholder="Kamida 6 ta belgi"
-                    value={smsPassword}
-                    onChange={(e) => setSmsPassword(e.target.value)}
-                    className={iPrCls}
-                    autoComplete="new-password"
+                    type="text" inputMode="numeric" placeholder="6 xonali kod"
+                    value={smsOtp} onChange={(e) => setSmsOtp(e.target.value)}
+                    maxLength={6} required
+                    className="text-center text-lg tracking-[0.4em] outline-none placeholder-[#B4A88F] text-[#1A2235] px-4"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowSmsPassword((v) => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8C7A5B] transition-colors hover:text-[#4A5366]"
-                    aria-label={showSmsPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
-                  >
-                    {showSmsPassword ? <EyeOff size={18} strokeWidth={1.9} /> : <Eye size={18} strokeWidth={1.9} />}
-                  </button>
                 </div>
               </div>
-
+              <div>
+                <label className={labelCls}>Parol yaratish</label>
+                <PasswordInput
+                  icon={<LockKeyhole size={18} strokeWidth={1.9} />}
+                  show={showSmsPassword}
+                  onToggle={() => setShowSmsPassword((v) => !v)}
+                  inputProps={{
+                    placeholder: 'Kamida 6 ta belgi', value: smsPassword,
+                    onChange: (e) => setSmsPassword(e.target.value),
+                    autoComplete: 'new-password',
+                  }}
+                />
+              </div>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={resendSmsOtp}
-                  disabled={smsResending}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl border border-[#EAE2D3] bg-[#FAF8F3] text-sm font-semibold text-[#0B1426] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D4A853]/60 hover:bg-[#F5EFE3] active:translate-y-0 disabled:opacity-60"
-                >
+                <button type="button" onClick={resendSmsOtp} disabled={smsResending} className={secondaryBtn}>
                   {smsResending ? 'Yuborilmoqda...' : 'Qayta yuborish'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={smsLoading}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0B1426] text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#162035] active:translate-y-0 disabled:opacity-60"
-                >
-                  {smsLoading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  ) : (
-                    'Tasdiqlash va kirish'
-                  )}
+                <button type="submit" disabled={smsLoading} className={primaryBtn}>
+                  {smsLoading
+                    ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    : 'Tasdiqlash va kirish'}
                 </button>
               </div>
-
               <button
                 type="button"
                 onClick={() => { setSmsStep('request'); setError(''); setSmsOtp(''); setSmsPassword(''); }}
@@ -461,195 +396,119 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {/* ══════════ EMAIL MODE ══════════ */}
+          {/* ══════════ EMAIL REGISTER ══════════ */}
           {authMode === 'email' && emailStep === 'register' && (
             <form onSubmit={requestEmailOtp} className="space-y-4">
-              {/* First Name */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Ism
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <UserRound size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Ismingiz"
-                    value={firstName}
-                    onChange={(e) => handleNameChange(e.target.value, setFirstName)}
-                    className={iCls}
-                    autoComplete="given-name"
-                    required
-                  />
-                </div>
+                <label className={labelCls}>Ism</label>
+                <IconInput
+                  icon={<UserRound size={18} strokeWidth={1.9} />}
+                  inputProps={{
+                    type: 'text', placeholder: 'Ismingiz', value: firstName,
+                    onChange: (e) => handleNameChange(e.target.value, setFirstName),
+                    autoComplete: 'given-name', required: true,
+                  }}
+                />
               </div>
-
-              {/* Last Name */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Familiya
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <UserRound size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type="text"
-                    placeholder="Familiyangiz"
-                    value={lastName}
-                    onChange={(e) => handleNameChange(e.target.value, setLastName)}
-                    className={iCls}
-                    autoComplete="family-name"
-                    required
-                  />
-                </div>
+                <label className={labelCls}>Familiya</label>
+                <IconInput
+                  icon={<UserRound size={18} strokeWidth={1.9} />}
+                  inputProps={{
+                    type: 'text', placeholder: 'Familiyangiz', value: lastName,
+                    onChange: (e) => handleNameChange(e.target.value, setLastName),
+                    autoComplete: 'family-name', required: true,
+                  }}
+                />
               </div>
-
-              {/* Email */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Email
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <Mail size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type="email"
-                    placeholder="email@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={iCls}
-                    autoComplete="email"
-                    required
-                  />
-                </div>
+                <label className={labelCls}>Email</label>
+                <IconInput
+                  icon={<Mail size={18} strokeWidth={1.9} />}
+                  inputProps={{
+                    type: 'email', placeholder: 'email@example.com', value: email,
+                    onChange: (e) => setEmail(e.target.value),
+                    autoComplete: 'email', required: true,
+                  }}
+                />
               </div>
-
-              {/* Password */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Parol
-                </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
-                    <LockKeyhole size={18} strokeWidth={1.9} aria-hidden="true" />
-                  </span>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Kamida 6 ta belgi"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={iPrCls}
-                    autoComplete="new-password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8C7A5B] transition-colors hover:text-[#4A5366]"
-                    aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
-                  >
-                    {showPassword ? <EyeOff size={18} strokeWidth={1.9} /> : <Eye size={18} strokeWidth={1.9} />}
-                  </button>
-                </div>
+                <label className={labelCls}>Parol</label>
+                <PasswordInput
+                  icon={<LockKeyhole size={18} strokeWidth={1.9} />}
+                  show={showPassword}
+                  onToggle={() => setShowPassword((v) => !v)}
+                  inputProps={{
+                    placeholder: 'Kamida 6 ta belgi', value: password,
+                    onChange: (e) => setPassword(e.target.value),
+                    autoComplete: 'new-password', required: true,
+                  }}
+                />
               </div>
-
               {/* Hidden phone for backend */}
               <input type="hidden" value={normalizePhoneNumber(phone)} />
-
-              <button
-                type="submit"
-                disabled={emailLoading}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0B1426] text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#162035] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {emailLoading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                ) : (
-                  'Email orqali ro\'yxatdan o\'tish'
-                )}
+              <button type="submit" disabled={emailLoading} className={primaryBtn}>
+                {emailLoading
+                  ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  : "Email orqali ro'yxatdan o'tish"}
               </button>
             </form>
           )}
 
-          {/* Email OTP Verify Step */}
+          {/* ══════════ EMAIL VERIFY ══════════ */}
           {authMode === 'email' && emailStep === 'verify' && (
             <form onSubmit={verifyEmailRegistration} className="space-y-4">
               <div className="flex items-start gap-2.5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-xs text-green-800">
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
                 <span>{emailMessage || 'Tasdiqlash kodi emailingizga yuborildi.'}</span>
               </div>
-
               {emailDevOtpCode && (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
                   Test kodi: <strong>{emailDevOtpCode}</strong>
                 </div>
               )}
-
               <div>
-                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.14em] text-[#4A5366]">
-                  Tasdiqlash kodi
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="6 xonali kod"
-                  value={emailOtp}
-                  onChange={(e) => setEmailOtp(e.target.value)}
-                  className={`${inputCls} px-4 text-center text-lg tracking-[0.4em]`}
-                  maxLength={6}
-                  required
-                />
+                <label className={labelCls}>Tasdiqlash kodi</label>
+                <div className={otpInputCls}>
+                  <input
+                    type="text" inputMode="numeric" placeholder="6 xonali kod"
+                    value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)}
+                    maxLength={6} required
+                    className="text-center text-lg tracking-[0.4em] outline-none placeholder-[#B4A88F] text-[#1A2235] px-4"
+                  />
+                </div>
               </div>
-
               <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="button"
-                  onClick={resendEmailOtp}
-                  disabled={emailResending}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl border border-[#EAE2D3] bg-[#FAF8F3] text-sm font-semibold text-[#0B1426] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#D4A853]/60 hover:bg-[#F5EFE3] active:translate-y-0 disabled:opacity-60"
-                >
+                <button type="button" onClick={resendEmailOtp} disabled={emailResending} className={secondaryBtn}>
                   {emailResending ? 'Yuborilmoqda...' : 'Qayta yuborish'}
                 </button>
-                <button
-                  type="submit"
-                  disabled={emailLoading}
-                  className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0B1426] text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#162035] active:translate-y-0 disabled:opacity-60"
-                >
-                  {emailLoading ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  ) : (
-                    'Tasdiqlash'
-                  )}
+                <button type="submit" disabled={emailLoading} className={primaryBtn}>
+                  {emailLoading
+                    ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    : 'Tasdiqlash'}
                 </button>
               </div>
             </form>
           )}
 
-          {/* Email Done Step */}
+          {/* ══════════ EMAIL DONE ══════════ */}
           {authMode === 'email' && emailStep === 'done' && (
             <div className="space-y-5">
               <div className="flex items-start gap-2.5 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
                 </svg>
                 <span>{emailMessage || "Ro'yxatdan o'tish muvaffaqiyatli yakunlandi!"}</span>
               </div>
-              <Link
-                href="/login"
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#0B1426] text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#162035]"
-              >
+              <Link href="/login" className={primaryBtn + ' no-underline'}>
                 Kirish sahifasiga o&apos;tish
               </Link>
             </div>
           )}
 
-          {/* ── Divider + Google + Footer (shown on non-OTP steps) ── */}
+          {/* ── Divider + Google (non-OTP steps only) ── */}
           {!isOtpStep && (
             <>
               <div className="my-6 flex items-center gap-3">
@@ -657,8 +516,6 @@ export default function RegisterPage() {
                 <span className="text-xs font-medium text-[#9B8E7B]">yoki</span>
                 <div className="h-px flex-1 bg-[#EAE2D3]" />
               </div>
-
-              {/* Google Button */}
               <button
                 type="button"
                 onClick={handleGoogleLogin}
@@ -675,13 +532,10 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* Footer Link */}
+          {/* Footer */}
           <p className="mt-7 text-center text-sm text-[#5C6475]">
             Hisobingiz bormi?{' '}
-            <Link
-              href="/login"
-              className="font-semibold text-[#D96B27] transition-colors hover:text-[#B55216] hover:underline"
-            >
+            <Link href="/login" className="font-semibold text-[#D96B27] transition-colors hover:text-[#B55216] hover:underline">
               Kirish
             </Link>
           </p>

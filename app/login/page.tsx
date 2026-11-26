@@ -240,8 +240,8 @@ export default function LoginPage() {
                 >
                   Telefon raqam
                 </label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
+                <div className="icon-input-wrap flex h-12 items-center overflow-hidden rounded-2xl border border-[#EAE2D3] bg-white transition-all duration-200 focus-within:border-[#D4A853] focus-within:ring-2 focus-within:ring-[#D4A853]/20">
+                  <span className="pointer-events-none shrink-0 pl-4 pr-2.5 text-[#8C7A5B]">
                     <Phone size={18} strokeWidth={1.9} aria-hidden="true" />
                   </span>
                   <input
@@ -254,7 +254,7 @@ export default function LoginPage() {
                     value={phone}
                     onChange={handlePhoneChange}
                     maxLength={17}
-                    className="w-full pl-icon font-mono tracking-wide"
+                    className="outline-none placeholder-[#B4A88F] text-[#1A2235] font-mono tracking-wide"
                     required
                   />
                 </div>
@@ -276,8 +276,8 @@ export default function LoginPage() {
                     Telefon orqali kirish
                   </button>
                 </div>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
+                <div className="icon-input-wrap flex h-12 items-center overflow-hidden rounded-2xl border border-[#EAE2D3] bg-white transition-all duration-200 focus-within:border-[#D4A853] focus-within:ring-2 focus-within:ring-[#D4A853]/20">
+                  <span className="pointer-events-none shrink-0 pl-4 pr-2.5 text-[#8C7A5B]">
                     <Mail size={18} strokeWidth={1.9} aria-hidden="true" />
                   </span>
                   <input
@@ -290,7 +290,7 @@ export default function LoginPage() {
                       if (error) setError('');
                       setEmail(event.target.value);
                     }}
-                    className="w-full pl-icon"
+                    className="outline-none placeholder-[#B4A88F] text-[#1A2235]"
                     required
                   />
                 </div>
@@ -313,8 +313,8 @@ export default function LoginPage() {
                   Parolni unutdingizmi?
                 </Link>
               </div>
-              <div className="relative">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8C7A5B]">
+              <div className="icon-input-wrap flex h-12 items-center overflow-hidden rounded-2xl border border-[#EAE2D3] bg-white transition-all duration-200 focus-within:border-[#D4A853] focus-within:ring-2 focus-within:ring-[#D4A853]/20">
+                <span className="pointer-events-none shrink-0 pl-4 pr-2.5 text-[#8C7A5B]">
                   <LockKeyhole size={18} strokeWidth={1.9} aria-hidden="true" />
                 </span>
                 <input
@@ -327,13 +327,13 @@ export default function LoginPage() {
                     if (error) setError('');
                     setPassword(event.target.value);
                   }}
-                  className="w-full pl-icon pr-icon"
+                  className="outline-none placeholder-[#B4A88F] text-[#1A2235]"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-[#7A8291] transition-colors hover:bg-[#FAF8F3] hover:text-[#0B1426] focus:outline-none"
+                  className="shrink-0 pr-4 text-[#7A8291] transition-colors hover:text-[#0B1426] focus:outline-none"
                   aria-label={showPassword ? 'Parolni yashirish' : "Parolni ko'rsatish"}
                 >
                   {showPassword ? (
