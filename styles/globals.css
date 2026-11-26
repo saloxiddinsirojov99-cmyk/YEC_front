@@ -261,6 +261,18 @@
   }
 
   /* Auth & Form Styles */
+  /* Icon-input left-padding override — beats the global input !important rule */
+  input.pl-icon {
+    padding-left: 2.75rem !important;
+  }
+  input.pl-icon-pr {
+    padding-left: 2.75rem !important;
+    padding-right: 2.75rem !important;
+  }
+  input.pr-icon {
+    padding-right: 2.75rem !important;
+  }
+
   .input-field {
     width: 100%;
     border-radius: 1rem;

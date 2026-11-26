@@ -254,8 +254,7 @@ export default function LoginPage() {
                     value={phone}
                     onChange={handlePhoneChange}
                     maxLength={17}
-                    style={{ paddingLeft: '2.85rem' }}
-                    className="w-full font-mono tracking-wide"
+                    className="w-full pl-icon font-mono tracking-wide"
                     required
                   />
                 </div>
@@ -291,8 +290,7 @@ export default function LoginPage() {
                       if (error) setError('');
                       setEmail(event.target.value);
                     }}
-                    style={{ paddingLeft: '2.85rem' }}
-                    className="w-full"
+                    className="w-full pl-icon"
                     required
                   />
                 </div>
@@ -329,8 +327,7 @@ export default function LoginPage() {
                     if (error) setError('');
                     setPassword(event.target.value);
                   }}
-                  style={{ paddingLeft: '2.85rem', paddingRight: '3rem' }}
-                  className="w-full"
+                  className="w-full pl-icon pr-icon"
                   required
                 />
                 <button
