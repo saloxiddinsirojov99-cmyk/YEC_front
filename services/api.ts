@@ -155,9 +155,19 @@ api.interceptors.response.use(
 
     isRefreshing = true;
     try {
+      // Try cookie-based refresh first; fall back to localStorage refresh token in body
+      const localRefreshToken = (() => {
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            return window.localStorage.getItem('yec_refresh_token') ?? undefined;
+          }
+        } catch { /* ignore */ }
+        return undefined;
+      })();
+
       const { data } = await axios.post(
         `${API_BASE_URL}/auth/refresh`,
-        {},
+        localRefreshToken ? { refreshToken: localRefreshToken } : {},
         { timeout: 15000, withCredentials: true, headers: { 'x-skip-refresh': '1' } },
       );
       const newAccessToken = data?.accessToken;

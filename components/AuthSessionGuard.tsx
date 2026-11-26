@@ -57,33 +57,48 @@ export default function AuthSessionGuard() {
                                pathname.startsWith('/cart');
       
       const accessToken = getToken();
+
+      const tryRefresh = async (): Promise<boolean> => {
+        if (refreshing.current) return false;
+        refreshing.current = true;
+        try {
+          const localRefreshToken = (() => {
+            try {
+              return window.localStorage.getItem('yec_refresh_token') ?? undefined;
+            } catch { return undefined; }
+          })();
+
+          const { data } = await axios.post(
+            `${API_BASE_URL}/auth/refresh`,
+            localRefreshToken ? { refreshToken: localRefreshToken } : {},
+            { timeout: 15000, withCredentials: true, headers: { 'x-skip-refresh': '1' } },
+          );
+          const nextAccess = data?.accessToken;
+          if (nextAccess) {
+            saveAccessToken(nextAccess);
+            setLastActive(Date.now());
+            // Update stored refresh token if backend rotated it
+            if (data?.refreshToken) {
+              try { window.localStorage.setItem('yec_refresh_token', data.refreshToken); } catch {}
+            }
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        } finally {
+          refreshing.current = false;
+        }
+      };
       
       // If no token but yec_has_session flag is true -> try to restore session first!
       if (!accessToken) {
         const hasSession = typeof window !== 'undefined' && localStorage.getItem('yec_has_session') === 'true';
         if (hasSession) {
-          if (refreshing.current) return;
-          refreshing.current = true;
-          try {
-            const { data } = await axios.post(
-              `${API_BASE_URL}/auth/refresh`,
-              {},
-              { timeout: 15000, withCredentials: true, headers: { 'x-skip-refresh': '1' } },
-            );
-            const nextAccess = data?.accessToken;
-            if (nextAccess) {
-              saveAccessToken(nextAccess);
-              setLastActive(Date.now());
-              return;
-            } else {
-              setAuthInitializing(false);
-              logout();
-            }
-          } catch {
+          const ok = await tryRefresh();
+          if (!ok) {
             setAuthInitializing(false);
             logout();
-          } finally {
-            refreshing.current = false;
           }
         } else {
           setAuthInitializing(false);
@@ -103,34 +118,17 @@ export default function AuthSessionGuard() {
         return;
       }
 
-      // 2. Check Access Token persistence/expiry
+      // 2. Check Access Token expiry — refresh proactively 2 minutes before expiry
       const accessExp = getTokenExpiryMs(accessToken);
-      if (accessExp && now >= accessExp) {
+      if (accessExp && now >= accessExp - 2 * 60 * 1000) {
         const hasSession = typeof window !== 'undefined' && localStorage.getItem('yec_has_session') === 'true';
         if (!hasSession) {
           logout();
           return;
         }
-
-        if (refreshing.current) return;
-        refreshing.current = true;
-        try {
-          const { data } = await axios.post(
-            `${API_BASE_URL}/auth/refresh`,
-            {},
-            { timeout: 15000, withCredentials: true, headers: { 'x-skip-refresh': '1' } },
-          );
-          const nextAccess = data?.accessToken;
-          if (nextAccess) {
-            saveAccessToken(nextAccess);
-            setLastActive(Date.now());
-          } else {
-            logout();
-          }
-        } catch {
+        const ok = await tryRefresh();
+        if (!ok) {
           logout();
-        } finally {
-          refreshing.current = false;
         }
       }
     };

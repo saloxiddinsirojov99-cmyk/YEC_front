@@ -140,6 +140,10 @@ export function saveTokens(accessToken: string, refreshToken?: string) {
   authInitializing = false;
   if (!canUseStorage()) return;
   safeSet('yec_has_session', 'true');
+  // Store refresh token in localStorage as fallback for cross-origin / incognito environments
+  if (refreshToken) {
+    safeSet(REFRESH_KEY, refreshToken);
+  }
   try {
     const user = getUserFromToken();
     if (user?.role) {
@@ -219,7 +223,12 @@ export function getToken(): string | null {
 }
 
 export function getRefreshToken(): string | null {
-  // Refresh token is in HttpOnly cookie; JavaScript cannot read it
+  // Try localStorage fallback first (for cross-origin / incognito where HttpOnly cookie may not arrive)
+  if (canUseStorage()) {
+    const stored = safeGet(REFRESH_KEY);
+    if (stored) return stored;
+  }
+  // Refresh token is in HttpOnly cookie; JavaScript cannot read it directly
   return null;
 }
 
