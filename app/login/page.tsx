@@ -106,8 +106,8 @@ export default function LoginPage() {
           src="/images/login-hero-bg.jpg"
           alt="YEC Market hashamatli gilam interyeri"
           fill
-          priority
-          sizes="50vw"
+          loading="eager"
+          sizes="(min-width: 1024px) 50vw, 1px"
           className="object-cover object-center"
         />
         {/* Refined navy & warm shadow overlays to keep carpet visible and text legible */}
@@ -166,8 +166,7 @@ export default function LoginPage() {
               src="/images/login-hero-bg.jpg"
               alt="YEC Market"
               fill
-              priority
-              sizes="100vw"
+              sizes="(max-width: 640px) 92vw, 440px"
               className="object-cover object-center opacity-55"
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0B1426]/85 via-[#0B1426]/65 to-[#0B1426]/40" />
